@@ -29,8 +29,8 @@ features = sp.audio_features(tids)
 delta = time.time() - start
 for feature in features:
     print(json.dumps(feature, indent=4))
-    print()
-    analysis = sp._get(feature['analysis_url'])
-    print(json.dumps(analysis, indent=4))
-    print()
+    # print()
+    # analysis = sp._get(feature['analysis_url'])
+    # print(json.dumps(analysis, indent=4))
+    # print()
 print("features retrieved in %.2f seconds" % (delta,))
