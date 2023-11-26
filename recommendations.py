@@ -13,7 +13,7 @@ sp = spotipy.Spotify(client_credentials_manager=client_credentials_manager)
 
 
 class Args(PrefixProto):
-    artist = "NOTD"
+    artist = "eminem"
 
 
 def get_artist(name):

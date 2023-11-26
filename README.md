@@ -13,5 +13,7 @@ how to adjust to user feedback? input x
 
 x -> LM -> which audio components to adjust
 small shift in each coordinate (hyperparameter)
+- database, for each user save 
+                each context vector for each different context
 
 can also ask user to rank on a scale from 1 to 10
