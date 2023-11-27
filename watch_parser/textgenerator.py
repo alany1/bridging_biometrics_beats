@@ -20,27 +20,46 @@ from dataclasses import dataclass
 @dataclass
 class TextGenerator:
     dataset: str
+    conversation_history: list = None
 
-    def __call__(self, prompt):
+    def __post_init__(self):
+        if self.conversation_history is None:
+            self.conversation_history = []
+
+    def __call__(self, prompt, verbose=True):
+        self.conversation_history.append(prompt)
+
+        full_prompt = "\n".join(self.conversation_history)
+
+        # Your existing logic to generate the response
         agent = create_csv_agent(
             ChatOpenAI(temperature=0, model="gpt-4-1106-preview"),
             self.dataset,
-            verbose=True
+            verbose=verbose,
+            agent_type=AgentType.OPENAI_FUNCTIONS
         )
-        df = pd.read_csv(self.dataset)
-        print(df)
 
-        tool_input = {"input":
-                          {"name": "python",
-                           "arguments": prompt,
-                           }
-                      }
+        tool_input = {
+            "input": {
+                "name": "python",
+                "arguments": full_prompt,
+            }
+        }
 
         out = agent.run(tool_input)
+
+        # Append the response to the conversation history
+        self.conversation_history.append(out)
+
         return out
+
+    def reset_conversation(self):
+        # Clear the conversation history
+        self.conversation_history = []
 
 
 if __name__ == '__main__':
-    prompt="This was a swimming workout. What genre of music would be good to listen to? Use all the data to come to a conclusion. Summarize it as a playlist description."
+    prompt = "This was a swimming workout. What genre of music would be good to listen to? Use all the data to come to a conclusion. Summarize it as a playlist description, and only return the description."
     gen = TextGenerator("../example_data/swim.csv")
-    gen(prompt)
+    lm_output = gen(prompt)
+    print(lm_output)
