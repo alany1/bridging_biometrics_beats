@@ -1,11 +1,19 @@
 import numpy as np
 import pandas as pd
+import requests.exceptions
 from spotipy import SpotifyOAuth
 
 import watch_parser
 from watch_parser.textgenerator import TextGenerator
 from typing import Literal
 import spotipy
+import requests
+import random
+
+"""
+I feel that it should be quite sensitive to the initial artist pool (i.e. the top artists of the user). But somehow it still did quite well
+However, we should diversify (maybe hand-select) the initial pool to help it generalize better 
+"""
 
 
 class Featurizer:
@@ -31,8 +39,9 @@ class Featurizer:
                              'target_speechiness', 'target_acousticness', 'target_instrumentalness', 'target_liveness',
                              'target_valence', 'target_tempo', 'target_time_signature']
 
-    def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"], num_artists=5, songs_per_artist=50,
-                 verbose=False, csv_path="artists_data.csv", num_tracks=20):
+    def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"], num_artists=5, songs_per_artist=10,
+                 verbose=False, csv_path="artists_data.csv", num_tracks=20, recommendation_max_retries=10,
+                 recommendation_sample_count=6):
         self.sp_range = sp_range
         self.num_artists = num_artists
         self.songs_per_artist = songs_per_artist
@@ -40,7 +49,7 @@ class Featurizer:
         self.verbose = verbose
         self.csv_path = csv_path
 
-        self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope="user-top-read"))
+        self.sp = spotipy.Spotify(auth_manager=SpotifyOAuth(scope="user-top-read playlist-modify-public"))
 
         self.num_tracks = num_tracks
 
@@ -49,6 +58,9 @@ class Featurizer:
         self.prompt = None
 
         self.text_generator = None
+
+        self.recommendation_max_retries = recommendation_max_retries
+        self.recommendation_sample_count = recommendation_sample_count
 
     def get_top_artists(self):
         artist_genres = []
@@ -117,7 +129,22 @@ class Featurizer:
         return features, genres
 
     def _get_recommendations(self, target_features, target_genres):
-        results = self.sp.recommendations(seed_genres=target_genres, limit=self.num_tracks, **target_features)
+        try:
+            results = self.sp.recommendations(seed_genres=target_genres, limit=self.num_tracks, **target_features)
+        except (requests.exceptions.HTTPError, spotipy.exceptions.SpotifyException):
+            while self.recommendation_max_retries > 0:
+                print("Features were too precise. Retrying recommendation request...")
+                self.recommendation_max_retries -= 1
+                target_keys = random.sample(list(target_features.keys()), self.recommendation_sample_count)
+                new_features = {key: target_features[key] for key in target_keys}
+                try:
+                    results = self.sp.recommendations(seed_genres=target_genres, limit=self.num_tracks, **new_features)
+                except (requests.exceptions.HTTPError, spotipy.exceptions.SpotifyException):
+                    continue
+                print(f"Recommendation request succeeded with keys {target_keys}!")
+                break
+            else:
+                raise RuntimeError("Failed to get recommendations")
         tracks_to_add = []
         for track in results['tracks']:
             if self.verbose:
@@ -131,7 +158,7 @@ class Featurizer:
         playlist = self.sp.user_playlists(self.sp.me()['id'], limit=1, offset=0)
         playlist = playlist['items'][0]['id']
 
-        self.sp.playlist_add_items(playlist_id=playlist['id'], items=tracks_to_add)
+        self.sp.playlist_add_items(playlist_id=playlist, items=tracks_to_add)
 
     def __call__(self, lm_description):
         top_artists, artist_genres = self.get_top_artists()
@@ -139,15 +166,7 @@ class Featurizer:
 
         self.create_dataframe(artist_features, artist_genres)
 
-        target_features, target_genres = (
-            {'target_danceability': 0.7, 'target_energy': 0.8, 'target_key': 5, 'target_loudness': -5.0,
-             'target_mode': 1,
-             'target_speechiness': 0.1, 'target_acousticness': 0.2, 'target_instrumentalness': 0.05,
-             'target_liveness': 0.2,
-             'target_valence': 0.6, 'target_tempo': 120.0, 'target_time_signature': 4},
-            ['edm', 'pop', 'dance', 'work-out'])
-
-        # target_features, target_genres = self.get_target_features(lm_description)
+        target_features, target_genres = self.get_target_features(lm_description)
 
         return target_features, target_genres
 
@@ -159,6 +178,9 @@ class Featurizer:
 
 
 if __name__ == '__main__':
+    desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
+    # desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
+
     featurizer = Featurizer("short_term", verbose=True)
-    featurizer(
-        "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions.")
+    features, genres = featurizer(desc)
+    featurizer.generate_playlist(features, genres, "alan_test")
