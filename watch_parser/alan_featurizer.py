@@ -41,7 +41,7 @@ class Featurizer:
 
     def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"], num_artists=5, songs_per_artist=10,
                  verbose=False, csv_path="artists_data.csv", num_tracks=20, recommendation_max_retries=10,
-                 recommendation_sample_count=6):
+                 recommendation_sample_count=6, num_genres=3):
         self.sp_range = sp_range
         self.num_artists = num_artists
         self.songs_per_artist = songs_per_artist
@@ -58,6 +58,8 @@ class Featurizer:
         self.prompt = None
 
         self.text_generator = None
+
+        self.num_genres = num_genres
 
         self.recommendation_max_retries = recommendation_max_retries
         self.recommendation_sample_count = recommendation_sample_count
@@ -130,7 +132,15 @@ class Featurizer:
 
     def _get_recommendations(self, target_features, target_genres):
         try:
-            results = self.sp.recommendations(seed_genres=target_genres, limit=self.num_tracks, **target_features)
+            # Since we can only have 5 seeds, we will sample 3 genres and two artists
+            my_top_artists = None
+            if self.num_genres < 5:
+                num_genres = min(self.num_genres, len(target_genres), 5)
+                target_genres = random.sample(target_genres, num_genres)
+                get = self.sp.current_user_top_artists(time_range=self.sp_range, limit=4 * (5 - num_genres))
+                my_top_artists = random.sample([artist['id'] for artist in get['items']], 5 - num_genres)
+            results = self.sp.recommendations(seed_genres=target_genres[:5], seed_artists=my_top_artists,
+                                              limit=self.num_tracks, **target_features)
         except (requests.exceptions.HTTPError, spotipy.exceptions.SpotifyException):
             while self.recommendation_max_retries > 0:
                 print("Features were too precise. Retrying recommendation request...")
@@ -138,7 +148,8 @@ class Featurizer:
                 target_keys = random.sample(list(target_features.keys()), self.recommendation_sample_count)
                 new_features = {key: target_features[key] for key in target_keys}
                 try:
-                    results = self.sp.recommendations(seed_genres=target_genres, limit=self.num_tracks, **new_features)
+                    results = self.sp.recommendations(seed_genres=target_genres[:5], seed_artists=my_top_artists,
+                                                      limit=self.num_tracks, **new_features)
                 except (requests.exceptions.HTTPError, spotipy.exceptions.SpotifyException):
                     continue
                 print(f"Recommendation request succeeded with keys {target_keys}!")
@@ -180,9 +191,10 @@ class Featurizer:
 if __name__ == '__main__':
     # desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
     # desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
-    # desc = "Embrace the tranquility of the night with 'Midnight Stroll Serenade,' a playlist blending ambient sounds and soft, reflective melodies. Perfect for your nocturnal neighborhood walks, these tracks create a serene, contemplative atmosphere under the moonlit sky."
-    desc = "Step into the calm of the night with 'Lunar Whisper: Midnight Walks,' a playlist featuring soothing Chinese songs. Ideal for a peaceful midnight stroll, these melodic tunes blend traditional instruments with modern sensibilities, creating a serene and reflective ambiance."
-
-    featurizer = Featurizer("short_term", verbose=True, recommendation_sample_count=3)
+    desc = "Embrace the tranquility of the night with 'Midnight Stroll Serenade,' a playlist blending ambient sounds and soft, reflective melodies. Perfect for your nocturnal neighborhood walks, these tracks create a serene, contemplative atmosphere under the moonlit sky."
+    # desc = "Step into the calm of the night with 'Lunar Whisper: Midnight Walks,' a playlist featuring soothing Chinese songs. Ideal for a peaceful midnight stroll, these melodic tunes blend traditional instruments with modern sensibilities, creating a serene and reflective ambiance."
+    # desc = "'Morning Rise and Shine' - A vibrant playlist crafted for those crisp, early morning walks to the school bus stop. It's a blend of upbeat and energizing tracks to kick-start your day with positivity and motivation. Expect a mix of light-hearted pop, indie vibes, and inspiring tunes that mirror the freshness of a new day, perfect for a brisk walk under the morning sky."
+    # desc = "'Volley Vibes' - This dynamic playlist is designed to pump you up for your volleyball game warm-ups. It's a high-energy mix of motivating beats and powerful anthems that will get your adrenaline flowing. Expect a blend of intense electronic, upbeat pop, and driving rock tunes that are perfect for getting into the competitive spirit and preparing your body and mind for the game. The rhythm and energy of these tracks will keep you focused and ready to dominate the court."
+    featurizer = Featurizer("medium_term", verbose=True, recommendation_sample_count=3, num_genres=3)
     features, genres = featurizer(desc)
     featurizer.generate_playlist(features, genres, "alan_test")

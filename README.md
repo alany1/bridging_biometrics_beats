@@ -24,6 +24,10 @@ two options to generate initial recommendations:
 
 1. t_w + predict genre -> SP -> recs
 2. t_w + my top k songs -> SP -> recs
+3. (alan featurizer) t_w + examples -> feat + genre -> SP
+
+(alan featurizer): improve sampling, can also generate multiple target features, and derive a range from that. 
+
 
 how to adjust to user feedback? input x
 
