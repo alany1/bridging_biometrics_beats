@@ -31,3 +31,5 @@ def generate_params(model_input, args):
     if args.verbose > 0:
         print(input_to_spotify_transformer)
     return input_to_spotify_transformer
+
+    
