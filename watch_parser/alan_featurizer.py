@@ -106,27 +106,36 @@ class Featurizer:
     def get_target_features(self, lm_description):
         self.gen = TextGenerator(self.csv_path)
         feat_prompt = (
-            f"You generated the following playlist description: '{lm_description}'. "
-            f"Based on this description, generate a feature vector with components: "
-            f"{Featurizer.output_features_names}. Format your response as a Python dictionary. "
-            f"For example, return the feature vector like this: "
-            f"{{'feature1': value1, 'feature2': value2, 'feature3': value3}}. "
-            f"Return only the dictionary without any additional commentary."
-        )
+            "Analyze the playlist description: '{}', and create a feature vector that reflects its musical style. "
+            "Focus on these specific features: {}. "
+            "Crucially, base your analysis on the data provided in the dataframe, which includes example features and their corresponding genres. "
+            "Examine the association between the genres and their feature vectors in the dataframe to inform your vector creation. "
+            "Generate a feature vector that resonates with the playlist description, ensuring that each value you assign is grounded in the data observed in the dataframe. "
+            "The response should be a Python dictionary, formatted as: "
+            "{{'feature1': value1, 'feature2': value2, 'feature3': value3, ...}}. "
+            "Your vector must align with the playlist's thematic elements and the genre data in the dataframe—avoid hallucinating values. "
+            "Submit only the feature vector dictionary, without extra explanations. "
+            "In your analysis, pay careful attention to how the musical attributes of the genres, as represented in the dataframe, correlate with your feature selections. "
+            "Proceed systematically, ensuring each feature choice is data-driven and reflective of the playlist's style. "
+            "Use the genres and features in the dataframe as a reference point. While the exact genres of your playlist might not be listed, derive your vector values from similar genres and their features in the dataframe, avoiding assumptions not supported by the data."
+        ).format(lm_description, ', '.join(Featurizer.output_features_names))
 
-        feat_output = self.gen(feat_prompt, verbose=self.verbose)
+        features = eval(self.gen(feat_prompt, verbose=self.verbose))
 
         all_genres = self.sp.recommendation_genre_seeds()["genres"]
         genre_prompt = (
-            f"Based on the list of genres: {all_genres}, identify a few genres that match the description. "
-            f"Format your response as a Python list. For example, return the genres like this: "
-            f"['genre1', 'genre2', 'genre3']."
-        )
+            "From the provided list of genres: {}, select genres that best align with the given music description. "
+            "Your task is to analyze the characteristics of each genre and identify those that correspond closely to the music style described. "
+            "Present your chosen genres in the format of a Python list. For instance, if the matching genres are 'ambient', 'classical', and 'jazz', "
+            "your response should look like: ['ambient', 'classical', 'jazz']. "
+            "Focus on the defining features of each genre and how they relate to the music description. "
+            "Ensure your selection is based on how well each genre reflects the characteristics of the described music style."
+        ).format(', '.join(all_genres))
 
         # all outputs are stored in this variable
         genre_output = self.gen(genre_prompt, verbose=self.verbose)
 
-        features, genres = watch_parser.parse_outputs(genre_output)
+        _, genres = watch_parser.parse_outputs(genre_output)
 
         return features, genres
 
@@ -189,9 +198,9 @@ class Featurizer:
 
 
 if __name__ == '__main__':
-    # desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
+    desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
     # desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
-    desc = "Embrace the tranquility of the night with 'Midnight Stroll Serenade,' a playlist blending ambient sounds and soft, reflective melodies. Perfect for your nocturnal neighborhood walks, these tracks create a serene, contemplative atmosphere under the moonlit sky."
+    # desc = "Embrace the tranquility of the night with 'Midnight Stroll Serenade,' a playlist blending ambient sounds and soft, reflective melodies. Perfect for your nocturnal neighborhood walks, these tracks create a serene, contemplative atmosphere under the moonlit sky."
     # desc = "Step into the calm of the night with 'Lunar Whisper: Midnight Walks,' a playlist featuring soothing Chinese songs. Ideal for a peaceful midnight stroll, these melodic tunes blend traditional instruments with modern sensibilities, creating a serene and reflective ambiance."
     # desc = "'Morning Rise and Shine' - A vibrant playlist crafted for those crisp, early morning walks to the school bus stop. It's a blend of upbeat and energizing tracks to kick-start your day with positivity and motivation. Expect a mix of light-hearted pop, indie vibes, and inspiring tunes that mirror the freshness of a new day, perfect for a brisk walk under the morning sky."
     # desc = "'Volley Vibes' - This dynamic playlist is designed to pump you up for your volleyball game warm-ups. It's a high-energy mix of motivating beats and powerful anthems that will get your adrenaline flowing. Expect a blend of intense electronic, upbeat pop, and driving rock tunes that are perfect for getting into the competitive spirit and preparing your body and mind for the game. The rhythm and energy of these tracks will keep you focused and ready to dominate the court."
