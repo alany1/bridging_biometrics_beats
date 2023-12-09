@@ -11,7 +11,7 @@ import pandas as pd
 import pickle
 
 
-dataset = "example_data/swim.csv"
+dataset = "example_data/swim_hr.csv"
 
 
 def embed_text(args):

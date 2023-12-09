@@ -66,6 +66,6 @@ class TextGenerator:
 
 if __name__ == '__main__':
     prompt = "This was a swimming workout. What genre of music would be good to listen to? Use all the data to come to a conclusion. Summarize it as a playlist description, and only return the description."
-    gen = TextGenerator("../example_data/swim.csv")
+    gen = TextGenerator("../example_data/swim_hr.csv")
     lm_output = gen(prompt)
     print(lm_output)
