@@ -4,6 +4,7 @@ import requests.exceptions
 from spotipy import SpotifyOAuth
 
 import watch_parser
+from watch_parser import ALL_GENRES
 from watch_parser.textgenerator import TextGenerator
 from typing import Literal
 import spotipy
@@ -41,7 +42,7 @@ class Featurizer:
 
     def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"], num_artists=5, songs_per_artist=10,
                  verbose=False, csv_path="artists_data.csv", num_tracks=20, recommendation_max_retries=10,
-                 recommendation_sample_count=6, num_genres=3):
+                 recommendation_sample_count=6, num_genres=3, use_cached_features=True):
         self.sp_range = sp_range
         self.num_artists = num_artists
         self.songs_per_artist = songs_per_artist
@@ -64,6 +65,8 @@ class Featurizer:
         self.recommendation_max_retries = recommendation_max_retries
         self.recommendation_sample_count = recommendation_sample_count
 
+        self.use_cached_features = use_cached_features
+
     def get_top_artists(self):
         artist_genres = []
         top_artists = []
@@ -74,6 +77,22 @@ class Featurizer:
             artist_genres.append(item['genres'])
 
         return top_artists, artist_genres
+
+    def sample_genres(self, genres):
+        genre_feats = []
+        for i, genre in enumerate(genres):
+            print(f"Sampling genre {i + 1}/{len(genres)}, {genre}...")
+            genre_results = self.sp.recommendations(seed_genres=[genre], limit=10)
+            feats = []
+            for track in genre_results['tracks']:
+                if self.verbose:
+                    print(track['name'], '-', track['artists'][0]['name'])
+                try:
+                    feats.append(watch_parser.to_np(self.sp.audio_features(track['uri'])[0]))
+                except:
+                    print(f"Failed to get features for {track['name']}")
+            genre_feats.append(np.mean(feats, axis=0))
+        self.create_dataframe(genre_feats, genres)
 
     def get_artist_features(self, top_artists):
         artist_features = []
@@ -181,10 +200,10 @@ class Featurizer:
         self.sp.playlist_add_items(playlist_id=playlist, items=tracks_to_add)
 
     def __call__(self, lm_description):
-        top_artists, artist_genres = self.get_top_artists()
-        artist_features = self.get_artist_features(top_artists)
-
-        self.create_dataframe(artist_features, artist_genres)
+        if not self.use_cached_features:
+            top_artists, artist_genres = self.get_top_artists()
+            artist_features = self.get_artist_features(top_artists)
+            self.create_dataframe(artist_features, artist_genres)
 
         target_features, target_genres = self.get_target_features(lm_description)
 
@@ -198,12 +217,18 @@ class Featurizer:
 
 
 if __name__ == '__main__':
+    from killport import kill_ports
+
+    kill_ports(ports=[9090])
+
     desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
     # desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
     # desc = "Embrace the tranquility of the night with 'Midnight Stroll Serenade,' a playlist blending ambient sounds and soft, reflective melodies. Perfect for your nocturnal neighborhood walks, these tracks create a serene, contemplative atmosphere under the moonlit sky."
     # desc = "Step into the calm of the night with 'Lunar Whisper: Midnight Walks,' a playlist featuring soothing Chinese songs. Ideal for a peaceful midnight stroll, these melodic tunes blend traditional instruments with modern sensibilities, creating a serene and reflective ambiance."
     # desc = "'Morning Rise and Shine' - A vibrant playlist crafted for those crisp, early morning walks to the school bus stop. It's a blend of upbeat and energizing tracks to kick-start your day with positivity and motivation. Expect a mix of light-hearted pop, indie vibes, and inspiring tunes that mirror the freshness of a new day, perfect for a brisk walk under the morning sky."
     # desc = "'Volley Vibes' - This dynamic playlist is designed to pump you up for your volleyball game warm-ups. It's a high-energy mix of motivating beats and powerful anthems that will get your adrenaline flowing. Expect a blend of intense electronic, upbeat pop, and driving rock tunes that are perfect for getting into the competitive spirit and preparing your body and mind for the game. The rhythm and energy of these tracks will keep you focused and ready to dominate the court."
-    featurizer = Featurizer("medium_term", verbose=True, recommendation_sample_count=3, num_genres=3)
+    featurizer = Featurizer("medium_term", verbose=True, recommendation_sample_count=3, num_genres=3,
+                            use_cached_features=True)
+    # featurizer.sample_genres(ALL_GENRES)
     features, genres = featurizer(desc)
     featurizer.generate_playlist(features, genres, "alan_test")
