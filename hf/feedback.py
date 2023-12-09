@@ -53,8 +53,6 @@ class FeedbackModule:
 
         out = eval(self.text_generator(feedback_prompt, verbose=self.verbose))
 
-        # postprocess
-
         return out
 
     def __call__(self, human_feedback, previous_feature, previous_genres, allowed_genres, playlist_description):

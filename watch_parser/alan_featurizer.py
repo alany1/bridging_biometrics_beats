@@ -43,7 +43,7 @@ class Featurizer:
                              'target_speechiness', 'target_acousticness', 'target_instrumentalness', 'target_liveness',
                              'target_valence', 'target_tempo', 'target_time_signature']
 
-    def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"], num_artists=5, songs_per_artist=10,
+    def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"] = "medium_term", num_artists=5, songs_per_artist=10,
                  verbose=False, csv_path="artists_data.csv", num_tracks=20, recommendation_max_retries=10,
                  recommendation_sample_count=6, num_genres=3, use_cached_features=True):
         self.sp_range = sp_range
