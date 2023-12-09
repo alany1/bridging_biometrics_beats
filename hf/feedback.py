@@ -51,9 +51,8 @@ class FeedbackModule:
             "Your genre recommendations should accurately reflect the musical preferences and style indicated in the user's feedback."
         ).format(human_feedback, previous_genres, ', '.join(allowed_genres))
 
-        out = eval(self.text_generator(feedback_prompt, verbose=self.verbose))
-
-        # postprocess
+        out = self.text_generator(feedback_prompt, verbose=self.verbose)
+        out = eval(out)
 
         return out
 

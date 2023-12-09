@@ -43,7 +43,8 @@ class Featurizer:
                              'target_speechiness', 'target_acousticness', 'target_instrumentalness', 'target_liveness',
                              'target_valence', 'target_tempo', 'target_time_signature']
 
-    def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"], num_artists=5, songs_per_artist=10,
+    def __init__(self, sp_range: Literal["short_term", "medium_term", "long_term"] = "medium_term", num_artists=5,
+                 songs_per_artist=10,
                  verbose=False, csv_path="artists_data.csv", num_tracks=20, recommendation_max_retries=10,
                  recommendation_sample_count=6, num_genres=3, use_cached_features=True):
         self.sp_range = sp_range
@@ -125,7 +126,10 @@ class Featurizer:
         self.df_features['Genre'] = artist_genres
         self.df_features.to_csv(self.csv_path, index=False)
 
-    def get_target_features(self, lm_description):
+    def get_target_features(self, playlist_description, data_summary=None):
+        """
+        data_summary: (optional) a text summary of the biooometric data 
+        """
         path = os.path.join(Path(__file__).parent, self.csv_path)
         self.gen = TextGenerator(path)
         feat_prompt = (
@@ -141,10 +145,15 @@ class Featurizer:
             "In your analysis, pay careful attention to how the musical attributes of the genres, as represented in the dataframe, correlate with your feature selections. "
             "Proceed systematically, ensuring each feature choice is data-driven and reflective of the playlist's style. "
             "Use the genres and features in the dataframe as a reference point. While the exact genres of your playlist might not be listed, derive your vector values from similar genres and their features in the dataframe, avoiding assumptions not supported by the data."
-        ).format(lm_description, ', '.join(Featurizer.output_features_names))
+        ).format(playlist_description, ', '.join(Featurizer.output_features_names))
+
+        if data_summary is not None:
+            feat_prompt += (
+                "In addition, you have access to the following summary of the user's biometric data: {}. "
+            ).format(data_summary)
 
         features = eval(self.gen(feat_prompt, verbose=self.verbose))
-        
+
         self.gen.reset_conversation()
         all_genres = self.sp.recommendation_genre_seeds()["genres"]
         genre_prompt = (
@@ -154,7 +163,13 @@ class Featurizer:
             "your response should look like: ['ambient', 'classical', 'jazz']. "
             "Focus on the defining features of each genre and how they relate to the music description. "
             "Ensure your selection is based on how well each genre reflects the characteristics of the described music style."
-        ).format(', '.join(all_genres), lm_description)
+        ).format(', '.join(all_genres), playlist_description)
+
+        if data_summary is not None:
+            genre_prompt += (
+                "In addition, you have access to the following summary of the user's biometric data: {}. "
+            ).format(data_summary)
+            
         # all outputs are stored in this variable   
         genre_output = self.gen(genre_prompt, verbose=self.verbose)
 
@@ -203,13 +218,13 @@ class Featurizer:
 
         self.sp.playlist_add_items(playlist_id=playlist, items=tracks_to_add)
 
-    def __call__(self, lm_description):
+    def __call__(self, lm_description, data_summary=None):
         if not self.use_cached_features:
             top_artists, artist_genres = self.get_top_artists()
             artist_features = self.get_artist_features(top_artists)
             self.create_dataframe(artist_features, artist_genres)
 
-        target_features, target_genres = self.get_target_features(lm_description)
+        target_features, target_genres = self.get_target_features(lm_description, data_summary=data_summary)
 
         self.gen.reset_conversation()
 
@@ -227,14 +242,17 @@ if __name__ == '__main__':
 
     kill_ports(ports=[9090])
 
-    desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
-    # desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
+    # desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
+    desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
     # desc = "Embrace the tranquility of the night with 'Midnight Stroll Serenade,' a playlist blending ambient sounds and soft, reflective melodies. Perfect for your nocturnal neighborhood walks, these tracks create a serene, contemplative atmosphere under the moonlit sky."
     # desc = "Step into the calm of the night with 'Lunar Whisper: Midnight Walks,' a playlist featuring soothing Chinese songs. Ideal for a peaceful midnight stroll, these melodic tunes blend traditional instruments with modern sensibilities, creating a serene and reflective ambiance."
     # desc = "'Morning Rise and Shine' - A vibrant playlist crafted for those crisp, early morning walks to the school bus stop. It's a blend of upbeat and energizing tracks to kick-start your day with positivity and motivation. Expect a mix of light-hearted pop, indie vibes, and inspiring tunes that mirror the freshness of a new day, perfect for a brisk walk under the morning sky."
     # desc = "'Volley Vibes' - This dynamic playlist is designed to pump you up for your volleyball game warm-ups. It's a high-energy mix of motivating beats and powerful anthems that will get your adrenaline flowing. Expect a blend of intense electronic, upbeat pop, and driving rock tunes that are perfect for getting into the competitive spirit and preparing your body and mind for the game. The rhythm and energy of these tracks will keep you focused and ready to dominate the court."
+    
+    swim_data_summary = "The average, minimum, and maximum counts per minute (measuring swimming intensity) are approximately 131.43, with a standard deviation of 10.12, and these values range from 110 to 149. The average active energy expenditure is around 0.119 kcal, varying from 0.017 to 0.285 kcal, with a standard deviation of 0.089 kcal. It's important to note that the average swimming distance per record is about 1.10 yards, but this value could be misleading as it represents short interval measurements; the total swimming distance per session is likely much greater. Lastly, the average swimming stroke count per record is 0.385 strokes, with a range from 0.043 to 0.930 strokes and a standard deviation of 0.241 strokes."
+    
     featurizer = Featurizer("medium_term", verbose=True, recommendation_sample_count=3, num_genres=3,
                             use_cached_features=True)
     # featurizer.sample_genres(ALL_GENRES)
-    features, genres = featurizer(desc)
+    features, genres = featurizer(desc, data_summary=swim_data_summary)
     featurizer.generate_playlist(features, genres, "alan_test")
