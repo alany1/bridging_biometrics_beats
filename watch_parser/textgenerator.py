@@ -15,17 +15,17 @@ from params_proto import PrefixProto
 from params_proto.partial import proto_partial
 import pandas as pd
 from dataclasses import dataclass
-from typing import Literal
+from typing import Literal, Union, List
 
 
 class ModelArgs(PrefixProto):
     # https://platform.openai.com/docs/models
-    model_name: Literal["gpt-4-1106-preview", "gpt-3.5-turbo-1106"] = "gpt-3.5-turbo-1106"
+    model_name: Literal["gpt-4-1106-preview", "gpt-3.5-turbo-1106"] = "gpt-4-1106-preview"
 
 
 @dataclass
 class TextGenerator:
-    dataset: str
+    dataset: Union[str, List[str]]
     model_name: str = ModelArgs.model_name
     conversation_history: list = None
 
@@ -33,11 +33,14 @@ class TextGenerator:
         if self.conversation_history is None:
             self.conversation_history = []
 
-        self.df = pd.read_csv(self.dataset)
+        if isinstance(self.dataset, str):
+            self.df = pd.read_csv(self.dataset)
+        else:
+            self.df = [pd.read_csv(d) for d in self.dataset]
 
         self.agent = create_pandas_dataframe_agent(ChatOpenAI(temperature=0, model=self.model_name), self.df,
                                                    prefix="Remove any ` from the Action Input",
-                                                   agent_type=AgentType.OPENAI_FUNCTIONS,
+                                                   # agent_type=AgentType.OPENAI_FUNCTIONS,
                                                    agent_executor_kwargs={"handle_parsing_errors": True},
                                                    verbose=True)
         # self.agent = create_csv_agent(ChatOpenAI(temperature=0, model=self.model_name), self.dataset, verbose=True)
