@@ -127,7 +127,6 @@ class Featurizer:
 
     def get_target_features(self, lm_description):
         path = os.path.join(Path(__file__).parent, self.csv_path)
-        
         self.gen = TextGenerator(path)
         feat_prompt = (
             "Analyze the playlist description: '{}', and create a feature vector that reflects its musical style. "
@@ -147,7 +146,6 @@ class Featurizer:
         features = eval(self.gen(feat_prompt, verbose=self.verbose))
         
         self.gen.reset_conversation()
-        
         all_genres = self.sp.recommendation_genre_seeds()["genres"]
         genre_prompt = (
             "From the provided list of genres: {}, select genres that best align with the given music description, specified as {}. "
@@ -213,7 +211,7 @@ class Featurizer:
 
         target_features, target_genres = self.get_target_features(lm_description)
 
-        #
+        self.gen.reset_conversation()
 
         return target_features, target_genres
 
