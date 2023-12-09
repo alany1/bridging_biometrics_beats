@@ -82,6 +82,6 @@ if __name__ == '__main__':
     feedback = FeedbackModule(featurizer.gen)
     allowed_genres = featurizer.sp.recommendation_genre_seeds()["genres"]
 
-    example_feedback = "that shit was ass, I want fast cool hype beast music that makes me go hard, some stuff I can deep house with at a party too, hype shit bro"
+    example_feedback = "that was not a great selection, I want fast cool hype beast music that makes me go hard, some stuff I can deep house with at a party too, hype bro"
 
     featurizer.generate_playlist(*feedback(example_feedback, features, genres, allowed_genres, desc), "post_feedback")
