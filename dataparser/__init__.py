@@ -19,7 +19,7 @@ class Dataparser:
         """
         dfs = [pd.read_csv(path).drop(self.drop_keys, axis=1) for path in self.data_paths]
         merged_df = reduce(lambda left, right: pd.merge(left, right, on=self.merge_keys, how=self.join_method), dfs)
-        
+
         merged_df.sort_values(by=self.merge_keys, inplace=True)
         merged_df.to_csv(destination_path, index=False)
 

@@ -4,12 +4,12 @@
 from watch_parser.alan_featurizer import Featurizer
 
 
-
 class FeedbackModule:
     """
     Make alterations to the feature vector and genre list based on user feedback.
 
     """
+
     def __init__(self, text_generator, verbose=True):
         self.text_generator = text_generator
         self.verbose = verbose
@@ -35,24 +35,21 @@ class FeedbackModule:
         new_feat = eval(self.text_generator(feedback_prompt, verbose=self.verbose))
         return new_feat
 
-
-
     def genre_delta(self, human_feedback, previous_genres, allowed_genres):
         """
         Similarly, ask LM to generate a new genre given the previous genres and the text.
         """
         feedback_prompt = (
-        "Based on the user's feedback regarding their previous song recommendations, which is as follows: '{}', and your previous genre recommendations, which are as follows: '{}',"
-        "determine the most suitable music genre(s) for their next listening experience. "
-        "You have access to a range of genres: {}. Your task is to carefully analyze the user's feedback, "
-        "then select and recommend genres from this list that closely match the user's music preferences as described in their feedback. "
-        "Critically assess the defining characteristics of each genre in the context of the feedback. "
-        "Present your genre recommendations in a Python list format. For example, if 'ambient', 'classical', and 'jazz' are the best matches, "
-        "format your response as: ['ambient', 'classical', 'jazz']. "
-        "Ensure that your selections are directly informed by the user's feedback, focusing on the specific aspects of the music they enjoyed or did not enjoy. "
-        "Your genre recommendations should accurately reflect the musical preferences and style indicated in the user's feedback."
-    ).format(human_feedback, previous_genres, ', '.join(allowed_genres))
-
+            "Based on the user's feedback regarding their previous song recommendations, which is as follows: '{}', and your previous genre recommendations, which are as follows: '{}',"
+            "determine the most suitable music genre(s) for their next listening experience. "
+            "You have access to a range of genres: {}. Your task is to carefully analyze the user's feedback, "
+            "then select and recommend genres from this list that closely match the user's music preferences as described in their feedback. "
+            "Critically assess the defining characteristics of each genre in the context of the feedback. "
+            "Present your genre recommendations in a Python list format. For example, if 'ambient', 'classical', and 'jazz' are the best matches, "
+            "format your response as: ['ambient', 'classical', 'jazz']. "
+            "Ensure that your selections are directly informed by the user's feedback, focusing on the specific aspects of the music they enjoyed or did not enjoy. "
+            "Your genre recommendations should accurately reflect the musical preferences and style indicated in the user's feedback."
+        ).format(human_feedback, previous_genres, ', '.join(allowed_genres))
 
         out = eval(self.text_generator(feedback_prompt, verbose=self.verbose))
 
@@ -75,11 +72,9 @@ if __name__ == '__main__':
 
     kill_ports(ports=[9090])
     desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
-    
+
     featurizer = Featurizer("medium_term", verbose=True, recommendation_sample_count=3, num_genres=3,
                             use_cached_features=True)
-    
-
 
     features, genres = featurizer(desc)
     featurizer.generate_playlist(features, genres, "pre_feedback")
@@ -90,9 +85,3 @@ if __name__ == '__main__':
     example_feedback = "that shit was ass, I want fast cool hype beast music that makes me go hard, some stuff I can deep house with at a party too, hype shit bro"
 
     featurizer.generate_playlist(*feedback(example_feedback, features, genres, allowed_genres, desc), "post_feedback")
-
-    
-
-
-    
-
