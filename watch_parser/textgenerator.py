@@ -19,13 +19,14 @@ from typing import Literal
 
 
 class ModelArgs(PrefixProto):
-    model_name: Literal["gpt-4-1106-preview"] = "gpt-4-1106-preview"
+    # https://platform.openai.com/docs/models
+    model_name: Literal["gpt-4-1106-preview", "gpt-3.5-turbo-1106"] = "gpt-3.5-turbo-1106"
 
 
 @dataclass
 class TextGenerator:
     dataset: str
-    model_name: str = "gpt-4-1106-preview"
+    model_name: str = ModelArgs.model_name
     conversation_history: list = None
 
     def __post_init__(self):
@@ -33,9 +34,10 @@ class TextGenerator:
             self.conversation_history = []
 
         self.df = pd.read_csv(self.dataset)
+
         self.agent = create_pandas_dataframe_agent(ChatOpenAI(temperature=0, model=self.model_name), self.df,
                                                    prefix="Remove any ` from the Action Input",
-                                                   # agent_type=AgentType.OPENAI_FUNCTIONS,
+                                                   agent_type=AgentType.OPENAI_FUNCTIONS,
                                                    agent_executor_kwargs={"handle_parsing_errors": True},
                                                    verbose=True)
         # self.agent = create_csv_agent(ChatOpenAI(temperature=0, model=self.model_name), self.dataset, verbose=True)
@@ -66,6 +68,6 @@ class TextGenerator:
 
 if __name__ == '__main__':
     prompt = "This was a swimming workout. What genre of music would be good to listen to? Using all of the data provided, come to a conclusion. Summarize it as a playlist description, and only return the description."
-    gen = TextGenerator("../example_data/swim_merged.csv")
+    gen = TextGenerator("../example_data/swim_merged.csv", ModelArgs.model_name)
     lm_output = gen(prompt)
     print(lm_output)

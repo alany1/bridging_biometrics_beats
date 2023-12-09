@@ -17,7 +17,7 @@ class FeatureArgs(PrefixProto):
     csv_path: str = Proto(default="artists_data.csv", help="Path to the csv file containing example features")
     num_tracks: int = Proto(default=20, help="Number of tracks to use for feature generation")
     recommendation_max_retries: int = Proto(default=10, help="Maximum number of retries for recommendation generation")
-    recommendation_sample_count: int = Proto(default=6,
+    recommendation_sample_count: int = Proto(default=5,
                                              help="Number of features sample when generating recommendations")
     num_genres: int = Proto(default=3, help="Genre split for recommendation algorithm")
     use_cached_features = Flag(default=True,
