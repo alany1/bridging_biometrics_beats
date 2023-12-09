@@ -1,3 +1,6 @@
+import os
+from pathlib import Path
+
 import numpy as np
 import pandas as pd
 import requests.exceptions
@@ -123,7 +126,9 @@ class Featurizer:
         self.df_features.to_csv(self.csv_path, index=False)
 
     def get_target_features(self, lm_description):
-        self.gen = TextGenerator(self.csv_path)
+        path = os.path.join(Path(__file__).parent, self.csv_path)
+        
+        self.gen = TextGenerator(path)
         feat_prompt = (
             "Analyze the playlist description: '{}', and create a feature vector that reflects its musical style. "
             "Focus on these specific features: {}. "
@@ -140,18 +145,19 @@ class Featurizer:
         ).format(lm_description, ', '.join(Featurizer.output_features_names))
 
         features = eval(self.gen(feat_prompt, verbose=self.verbose))
-
+        
+        self.gen.reset_conversation()
+        
         all_genres = self.sp.recommendation_genre_seeds()["genres"]
         genre_prompt = (
-            "From the provided list of genres: {}, select genres that best align with the given music description. "
+            "From the provided list of genres: {}, select genres that best align with the given music description, specified as {}. "
             "Your task is to analyze the characteristics of each genre and identify those that correspond closely to the music style described. "
             "Present your chosen genres in the format of a Python list. For instance, if the matching genres are 'ambient', 'classical', and 'jazz', "
             "your response should look like: ['ambient', 'classical', 'jazz']. "
             "Focus on the defining features of each genre and how they relate to the music description. "
             "Ensure your selection is based on how well each genre reflects the characteristics of the described music style."
-        ).format(', '.join(all_genres))
-
-        # all outputs are stored in this variable
+        ).format(', '.join(all_genres), lm_description)
+        # all outputs are stored in this variable   
         genre_output = self.gen(genre_prompt, verbose=self.verbose)
 
         _, genres = watch_parser.parse_outputs(genre_output)
