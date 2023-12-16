@@ -13,13 +13,13 @@ class FeatureArgs(PrefixProto):
     num_artists: int = Proto(default=5,
                              help="Number of artists to use for feature generation, unless using cached features as demonstrations")
     songs_per_artist: int = Proto(default=10, help="Number of songs per artist to use for feature generation")
-    verbose = Flag(default=False)
+    verbose = Flag(default=True)
     csv_path: str = Proto(default="artists_data.csv", help="Path to the csv file containing example features")
-    num_tracks: int = Proto(default=20, help="Number of tracks to use for feature generation")
+    num_tracks: int = Proto(default=10, help="Number of tracks to produce")
     recommendation_max_retries: int = Proto(default=10, help="Maximum number of retries for recommendation generation")
-    recommendation_sample_count: int = Proto(default=5,
+    recommendation_sample_count: int = Proto(default=3,
                                              help="Number of features sample when generating recommendations")
-    num_genres: int = Proto(default=3, help="Genre split for recommendation algorithm")
+    num_genres: int = Proto(default=5, help="Genre split for recommendation algorithm")
     use_cached_features = Flag(default=True,
                                help="Whether to use cached features as demonstrations. If true, will use the csv file specified by csv_path")
 
@@ -44,7 +44,7 @@ class Runner:
 
         return new_features, new_genres
 
-    def __call__(self, playlist_description):
+    def __call__(self, playlist_description, activity_description=None):
         features, genres = self @ playlist_description
         self.featurizer.generate_playlist(features, genres, f"playlist_prefix/{len(self.feature_history)}")
 
@@ -63,6 +63,7 @@ class Runner:
 
 
 if __name__ == '__main__':
-    initial_desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
+    # initial_desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
+    initial_desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring classical and instrumental tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
     runner = Runner()
     runner(initial_desc)

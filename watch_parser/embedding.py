@@ -14,6 +14,9 @@ def embed_text(text):
     input_to_model = embedder.encode(text)
     return input_to_model
 
-
+if __name__ == '__main__':
+    # desc = "Concentrated Study Beats: Enhance your focus with this playlist featuring instrumental and ambient tracks. Ideal for deep concentration and productivity, these soothing, lyric-free melodies are perfect for any study session."
+    desc = "Energize Your Swim: A high-tempo mix of EDM, pop, and upbeat hits to keep your heart pumping and your strokes powerful. Perfect for moderate to high-intensity pool sessions."
+    out = embed_text(desc)
 
 
