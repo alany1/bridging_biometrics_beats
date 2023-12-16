@@ -1,7 +1,7 @@
 # genre + target feature
 # text -> LM -> change genres and features accordingly -> ...
 # text -> LM -> "find me the coordinates of the feature that I should adjust, and up or down" -> lr * sign(LM)
-from watch_parser.alan_featurizer import Featurizer
+from watch_parser.few_shot import Featurizer
 import ast
 
 class FeedbackModule:
@@ -87,6 +87,6 @@ if __name__ == '__main__':
     feedback = FeedbackModule(featurizer.gen)
     allowed_genres = featurizer.sp.recommendation_genre_seeds()["genres"]
 
-    example_feedback = "that was not a great selection, I want fast cool hype beast music that makes me go hard, some stuff I can deep house with at a party too, hype bro"
+    example_feedback = "that was not a great selection, I want fast cool hype beast music"
 
     featurizer.generate_playlist(*feedback(example_feedback, features, genres, allowed_genres, desc), "post_feedback")

@@ -3,7 +3,7 @@ from typing import Literal
 from params_proto import PrefixProto, Proto, Flag
 from params_proto.partial import proto_partial
 
-from watch_parser.alan_featurizer import Featurizer
+from watch_parser.few_shot import Featurizer
 from hf.feedback import FeedbackModule
 
 

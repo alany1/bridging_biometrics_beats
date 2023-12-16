@@ -14,11 +14,6 @@ import spotipy
 import requests
 import random
 
-"""
-I feel that it should be quite sensitive to the initial artist pool (i.e. the top artists of the user). But somehow it still did quite well
-However, we should diversify (maybe hand-select) the initial pool to help it generalize better 
-"""
-
 
 class Featurizer:
     """
