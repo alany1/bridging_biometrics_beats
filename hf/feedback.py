@@ -2,7 +2,7 @@
 # text -> LM -> change genres and features accordingly -> ...
 # text -> LM -> "find me the coordinates of the feature that I should adjust, and up or down" -> lr * sign(LM)
 from watch_parser.alan_featurizer import Featurizer
-
+import ast
 
 class FeedbackModule:
     """
@@ -28,11 +28,17 @@ class FeedbackModule:
             "Format your adjusted feature vector as a Python dictionary: "
             "{{'feature1': value1, 'feature2': value2, 'feature3': value3, ...}}. "
             "This adjustment should be data-driven, grounded in the specifics of the user's feedback and the genre characteristics in the dataframe. "
-            "Present only the revised feature vector dictionary, without additional commentary. "
+            "Present only the revised feature vector dictionary, without ANY additional commentary. "
             "This refinement is akin to customizing the song suggestions to better fit the user's musical tastes, using the dataframe as a guide for realistic and appropriate feature values."
         ).format(previous_feature, playlist_description, human_feedback)
-
-        new_feat = eval(self.text_generator(feedback_prompt, verbose=self.verbose))
+        
+        out_str = self.text_generator(feedback_prompt, verbose=self.verbose)
+        try:
+            new_feat = eval(out_str)
+        except:
+            dict_string = out_str[10:-4]
+            new_feat = ast.literal_eval(dict_string)
+            
         return new_feat
 
     def genre_delta(self, human_feedback, previous_genres, allowed_genres):

@@ -7,12 +7,8 @@ extra inputs (e.g. stroke count, distance)
 """
 from langchain.agents.agent_types import AgentType
 from langchain.chat_models import ChatOpenAI
-from langchain.llms import OpenAI
-from langchain_experimental.agents.agent_toolkits import create_csv_agent, create_pandas_dataframe_agent
-import os
-from getpass import getpass
+from langchain_experimental.agents.agent_toolkits import create_pandas_dataframe_agent
 from params_proto import PrefixProto
-from params_proto.partial import proto_partial
 import pandas as pd
 from dataclasses import dataclass
 from typing import Literal, Union, List
@@ -71,6 +67,6 @@ class TextGenerator:
 
 if __name__ == '__main__':
     prompt = "This was a swimming workout. What genre of music would be good to listen to? Using all of the data provided, come to a conclusion. Summarize it as a playlist description, and only return the description."
-    gen = TextGenerator("../example_data/swim_merged.csv", ModelArgs.model_name)
-    lm_output = gen(prompt)
-    print(lm_output)
+    #gen = TextGenerator("../example_data/swim_merged.csv", ModelArgs.model_name)
+    #lm_output = gen(prompt)
+    #print(lm_output)
